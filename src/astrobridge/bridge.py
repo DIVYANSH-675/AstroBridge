@@ -10,7 +10,8 @@ from torch.nn import functional as F
 
 def forward_bridge(clean, observed, time, sigma, noise):
     if (
-        clean.shape != observed.shape
+        clean.ndim != 4
+        or clean.shape != observed.shape
         or noise.shape != clean.shape
         or sigma < 0
         or not math.isfinite(sigma)
@@ -28,6 +29,8 @@ def forward_bridge(clean, observed, time, sigma, noise):
 
 
 def reverse_moments(current, clean_estimate, t, s, sigma):
+    if current.shape != clean_estimate.shape:
+        raise ValueError("Current state and clean estimate shapes must match")
     if not 0 <= s < t <= 1 or sigma < 0 or not math.isfinite(sigma):
         raise ValueError("Reverse steps require 0 <= s < t <= 1 and sigma >= 0")
     mean = (1 - s / t) * clean_estimate + (s / t) * current

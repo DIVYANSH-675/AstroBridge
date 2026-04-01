@@ -49,3 +49,11 @@ def test_initial_endpoint_predictor_matches_observation_baseline():
     torch.testing.assert_close(
         model(torch.randn_like(observation), observation, torch.rand(2)), observation
     )
+
+
+def test_bridge_rejects_shape_broadcasting():
+    clean = torch.zeros(2, 4, 4)
+    with pytest.raises(ValueError):
+        forward_bridge(clean, clean, torch.zeros(2), 0.2, clean)
+    with pytest.raises(ValueError, match="shapes must match"):
+        reverse_moments(torch.zeros(2, 1, 4, 4), torch.zeros(1, 1, 4, 4), 1.0, 0.5, 0.2)
