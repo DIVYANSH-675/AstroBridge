@@ -1,0 +1,8 @@
+{
+  "rmse": 0.049430541694164276,
+  "observation_rmse": 0.0778399333357811,
+  "mean_ensemble_std": 0.01496186200529337,
+  "nominal_90_coverage": 0.486572265625,
+  "ensemble_size": 8,
+  "note": "Ensemble spread is not a calibrated posterior guarantee."
+}
