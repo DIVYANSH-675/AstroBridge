@@ -4,12 +4,14 @@ import json
 import numpy as np
 import torch
 
+from . import __version__
 from .bridge import InverseNet, forward_bridge, load_pairs, sample, synthetic
 from .io import seed_all, start_run, write_json, write_npz
 
 
 def main():
     p = argparse.ArgumentParser(description="AstroBridge paired inverse-image research prototype")
+    p.add_argument("--version", action="version", version="astrobridge " + __version__)
     p.add_argument("command", choices=["generate", "train", "evaluate"])
     p.add_argument("--data")
     p.add_argument("--checkpoint")
