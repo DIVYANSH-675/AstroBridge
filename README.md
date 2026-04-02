@@ -65,6 +65,14 @@ CI runs the suite on Python 3.10 and 3.12. Small synthetic runs validate softwar
 
 This is a Brownian-bridge denoising prototype, not AstroDSB's full training procedure, a telescope forward model, or a validated astrophysical posterior sampler. The generator uses Gaussian sources, blur, and noise. Its ensemble spread is not calibrated uncertainty; one-step sampling and single-member ensembles cannot meaningfully estimate it. The unconstrained residual output may predict negative intensities or values outside the physical range; the model does not impose positivity or flux conservation. Use real paired data and calibration experiments before interpreting scientific reconstructions.
 
+## Calling the bridge equations
+
+The low-level forward bridge expects clean endpoints, observed endpoints, and noise with an identical four-dimensional `[batch, channels, height, width]` shape. Its time tensor contains one value per batch item. The bundled image network uses one channel.
+
+The reverse-moment function requires the current state and clean estimate to have identical shapes. It rejects a single clean estimate broadcast across a larger batch, which could otherwise silently pair observations with the wrong reconstruction.
+
+The NPZ loader accepts `[batch, height, width]` arrays and adds the channel axis. When calling `forward_bridge` directly, add that axis yourself with `images[:, None, :, :]`. Reverse steps still require `0 <= s < t <= 1` and a finite nonnegative noise scale.
+
 ## License
 
 The original code in this repository is MIT licensed, copyright 2026 Divyansh Gupta. See [LICENSE](LICENSE). The cited paper is a separate work; this code's license does not relicense the paper or external datasets.
