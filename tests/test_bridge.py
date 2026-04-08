@@ -57,3 +57,20 @@ def test_bridge_rejects_shape_broadcasting():
         forward_bridge(clean, clean, torch.zeros(2), 0.2, clean)
     with pytest.raises(ValueError, match="shapes must match"):
         reverse_moments(torch.zeros(2, 1, 4, 4), torch.zeros(1, 1, 4, 4), 1.0, 0.5, 0.2)
+
+
+def test_pair_loader_rejects_overflow_and_mismatched_rank(tmp_path):
+    import numpy as np
+
+    from astrobridge.bridge import load_pairs
+
+    clean = np.zeros((5, 4, 4), dtype=np.float64)
+    observed = clean.copy()
+    observed[0, 0, 0] = 1e100
+    path = tmp_path / "pairs.npz"
+    np.savez(path, clean=clean, observed=observed)
+    with pytest.raises(ValueError, match="finite float32"):
+        load_pairs(path)
+    np.savez(path, clean=clean, observed=np.array(1.0))
+    with pytest.raises(ValueError, match="matching shapes"):
+        load_pairs(path)

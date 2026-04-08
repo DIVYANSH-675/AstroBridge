@@ -109,6 +109,10 @@ def synthetic(count=64, side=16, seed=0):
 def load_pairs(path):
     with np.load(path, allow_pickle=False) as archive:
         clean, observed = archive["clean"], archive["observed"]
+    if clean.shape != observed.shape:
+        raise ValueError("Clean and observed images must have matching shapes")
+    if clean.dtype.kind not in "fiu" or observed.dtype.kind not in "fiu":
+        raise ValueError("Images must be real numeric arrays")
     if clean.ndim == 3:
         clean, observed = clean[:, None], observed[:, None]
     if (
@@ -121,4 +125,8 @@ def load_pairs(path):
         raise ValueError("Expected matching clean/observed arrays [B,1,H,W], B>=5 and H,W>=4")
     if not np.isfinite(clean).all() or not np.isfinite(observed).all():
         raise ValueError("Images must contain finite physical values")
-    return clean.astype(np.float32), observed.astype(np.float32)
+    with np.errstate(over="ignore"):
+        clean, observed = clean.astype(np.float32), observed.astype(np.float32)
+    if not np.isfinite(clean).all() or not np.isfinite(observed).all():
+        raise ValueError("Images must be representable as finite float32 values")
+    return clean, observed
