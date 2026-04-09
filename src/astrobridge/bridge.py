@@ -41,6 +41,8 @@ def reverse_moments(current, clean_estimate, t, s, sigma):
 class InverseNet(nn.Module):
     def __init__(self, width=16):
         super().__init__()
+        if type(width) is not int or width < 4 or width % 4:
+            raise ValueError("width must be a positive multiple of four for GroupNorm")
         self.encoder = nn.Sequential(
             nn.Conv2d(3, width, 3, padding=1), nn.GroupNorm(4, width), nn.SiLU()
         )

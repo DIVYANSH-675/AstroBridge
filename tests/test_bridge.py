@@ -74,3 +74,12 @@ def test_pair_loader_rejects_overflow_and_mismatched_rank(tmp_path):
     np.savez(path, clean=clean, observed=np.array(1.0))
     with pytest.raises(ValueError, match="matching shapes"):
         load_pairs(path)
+
+
+def test_network_width_matches_group_normalization_contract():
+    for width in (0, 3, 6, True):
+        with pytest.raises(ValueError, match="multiple of four"):
+            InverseNet(width)
+    model = InverseNet(8)
+    observed = torch.ones(1, 1, 4, 4)
+    assert model(observed, observed, torch.ones(1)).shape == observed.shape
