@@ -19,9 +19,13 @@ def main():
     p.add_argument("--epochs", type=int, default=8)
     p.add_argument("--count", type=int, default=64)
     p.add_argument("--seed", type=int, default=7)
+    p.add_argument("--sigma", type=float, default=None)
     p.add_argument("--steps", type=int, default=8)
     p.add_argument("--ensemble", type=int, default=4)
     a = p.parse_args()
+    sigma = 0.2 if a.sigma is None else a.sigma
+    if not np.isfinite(sigma) or sigma < 0:
+        p.error("sigma must be finite and nonnegative")
     a.output = a.output or (
         "runs/report.json"
         if a.command == "evaluate"
@@ -42,10 +46,14 @@ def main():
             p.error("evaluate requires --checkpoint")
         checkpoint = torch.load(a.checkpoint, map_location="cpu", weights_only=True)
         model.load_state_dict(checkpoint["model"])
+        sigma = checkpoint.get("config", {}).get("sigma", 0.2) if a.sigma is None else a.sigma
         offset, scale = checkpoint["offset"], checkpoint["scale"]
         clean, observed = [torch.tensor((v - offset) / scale) for v in arrays]
         ensemble = torch.stack(
-            [sample(model, observed, a.steps, seed=a.seed + i) for i in range(a.ensemble)]
+            [
+                sample(model, observed, a.steps, sigma=sigma, seed=a.seed + i)
+                for i in range(a.ensemble)
+            ]
         )
         prediction = ensemble.mean(0)
         std = ensemble.std(0, unbiased=False)
@@ -55,11 +63,13 @@ def main():
             mean_ensemble_std=float(std.mean()) * scale,
             nominal_90_coverage=float(((prediction - clean).abs() <= 1.645 * std).float().mean()),
             ensemble_size=a.ensemble,
+            sigma=sigma,
             note="Ensemble spread is not a calibrated posterior guarantee.",
         )
         write_json(a.output, report)
         print(json.dumps(report))
         return
+    a.sigma = sigma
     output = start_run(a.output, vars(a))
     order = np.random.default_rng(a.seed).permutation(len(arrays[0]))
     cut = max(1, len(order) // 5)
@@ -77,7 +87,7 @@ def main():
         for ids in permutation.split(16):
             t = 0.02 + 0.98 * torch.rand(len(ids))
             current = forward_bridge(
-                clean[ids], observed[ids], t, 0.2, torch.randn_like(clean[ids])
+                clean[ids], observed[ids], t, sigma, torch.randn_like(clean[ids])
             )
             loss = (model(current, observed[ids], t) - clean[ids]).square().mean()
             if not torch.isfinite(loss):
@@ -87,7 +97,7 @@ def main():
             torch.nn.utils.clip_grad_norm_(model.parameters(), 5, error_if_nonfinite=True)
             optimizer.step()
             total += float(loss.detach()) * len(ids)
-        prediction = sample(model, observed[valid_ids], a.steps, seed=123)
+        prediction = sample(model, observed[valid_ids], a.steps, sigma=sigma, seed=123)
         validation = float((prediction - clean[valid_ids]).square().mean())
         history.append(
             dict(epoch=epoch, train_mse=total / len(train_ids), validation_mse=validation)
