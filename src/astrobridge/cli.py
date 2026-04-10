@@ -16,6 +16,7 @@ def main():
     p.add_argument("--data")
     p.add_argument("--checkpoint")
     p.add_argument("--output", default=None)
+    p.add_argument("--learning-rate", type=float, default=0.001)
     p.add_argument("--epochs", type=int, default=8)
     p.add_argument("--count", type=int, default=64)
     p.add_argument("--seed", type=int, default=7)
@@ -23,6 +24,8 @@ def main():
     p.add_argument("--steps", type=int, default=8)
     p.add_argument("--ensemble", type=int, default=4)
     a = p.parse_args()
+    if not np.isfinite(a.learning_rate) or a.learning_rate <= 0:
+        p.error("learning-rate must be finite and positive")
     sigma = 0.2 if a.sigma is None else a.sigma
     if not np.isfinite(sigma) or sigma < 0:
         p.error("sigma must be finite and nonnegative")
@@ -77,7 +80,7 @@ def main():
     offset = float(min(v[train_ids].min() for v in arrays))
     scale = max(float(max(v[train_ids].max() for v in arrays) - offset), 1e-6)
     clean, observed = [torch.tensor((v - offset) / scale) for v in arrays]
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    optimizer = torch.optim.Adam(model.parameters(), lr=a.learning_rate)
     history = []
     best = float("inf")
     for epoch in range(a.epochs):
