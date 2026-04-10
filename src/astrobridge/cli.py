@@ -17,6 +17,7 @@ def main():
     p.add_argument("--checkpoint")
     p.add_argument("--output", default=None)
     p.add_argument("--learning-rate", type=float, default=0.001)
+    p.add_argument("--batch-size", type=int, default=16)
     p.add_argument("--epochs", type=int, default=8)
     p.add_argument("--count", type=int, default=64)
     p.add_argument("--seed", type=int, default=7)
@@ -24,6 +25,8 @@ def main():
     p.add_argument("--steps", type=int, default=8)
     p.add_argument("--ensemble", type=int, default=4)
     a = p.parse_args()
+    if a.batch_size < 1:
+        p.error("batch-size must be positive")
     if not np.isfinite(a.learning_rate) or a.learning_rate <= 0:
         p.error("learning-rate must be finite and positive")
     sigma = 0.2 if a.sigma is None else a.sigma
@@ -87,7 +90,7 @@ def main():
         model.train()
         total = 0.0
         permutation = torch.tensor(train_ids)[torch.randperm(len(train_ids))]
-        for ids in permutation.split(16):
+        for ids in permutation.split(a.batch_size):
             t = 0.02 + 0.98 * torch.rand(len(ids))
             current = forward_bridge(
                 clean[ids], observed[ids], t, sigma, torch.randn_like(clean[ids])
