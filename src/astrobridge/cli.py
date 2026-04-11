@@ -5,7 +5,7 @@ import numpy as np
 import torch
 
 from . import __version__
-from .bridge import InverseNet, forward_bridge, load_pairs, sample, synthetic
+from .bridge import InverseNet, ensemble_moments, forward_bridge, load_pairs, sample, synthetic
 from .io import seed_all, start_run, write_json, write_npz
 
 
@@ -55,14 +55,9 @@ def main():
         sigma = checkpoint.get("config", {}).get("sigma", 0.2) if a.sigma is None else a.sigma
         offset, scale = checkpoint["offset"], checkpoint["scale"]
         clean, observed = [torch.tensor((v - offset) / scale) for v in arrays]
-        ensemble = torch.stack(
-            [
-                sample(model, observed, a.steps, sigma=sigma, seed=a.seed + i)
-                for i in range(a.ensemble)
-            ]
+        prediction, std = ensemble_moments(
+            model, observed, ensemble=a.ensemble, steps=a.steps, sigma=sigma, seed=a.seed
         )
-        prediction = ensemble.mean(0)
-        std = ensemble.std(0, unbiased=False)
         report = dict(
             rmse=float((prediction - clean).square().mean().sqrt()) * scale,
             observation_rmse=float((observed - clean).square().mean().sqrt()) * scale,

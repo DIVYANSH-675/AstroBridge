@@ -83,3 +83,19 @@ def test_network_width_matches_group_normalization_contract():
     model = InverseNet(8)
     observed = torch.ones(1, 1, 4, 4)
     assert model(observed, observed, torch.ones(1)).shape == observed.shape
+
+
+def test_online_ensemble_matches_stacked_trajectories():
+    from astrobridge.bridge import ensemble_moments
+
+    torch.manual_seed(5)
+    torch.set_num_threads(1)
+    model = InverseNet()
+    with torch.no_grad():
+        model.decoder[-1].weight.normal_(0, 0.02)
+    observed = torch.rand(2, 1, 8, 8)
+    stacked = torch.stack([sample(model, observed, 3, seed=20 + i) for i in range(3)])
+    mean, std = ensemble_moments(model, observed, 3, 3, seed=20)
+    torch.testing.assert_close(mean, stacked.mean(0))
+    torch.testing.assert_close(std, stacked.std(0, unbiased=False))
+    assert std.max() > 0

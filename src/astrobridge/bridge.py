@@ -132,3 +132,19 @@ def load_pairs(path):
     if not np.isfinite(clean).all() or not np.isfinite(observed).all():
         raise ValueError("Images must be representable as finite float32 values")
     return clean, observed
+
+
+@torch.no_grad()
+def ensemble_moments(model, observed, ensemble=4, steps=8, sigma=0.2, seed=0):
+    """Accumulate population moments with memory independent of ensemble size."""
+    if type(ensemble) is not int or ensemble < 1:
+        raise ValueError("ensemble must be a positive integer")
+    mean = torch.zeros_like(observed, dtype=torch.float64)
+    m2 = torch.zeros_like(mean)
+    for index in range(ensemble):
+        member = sample(model, observed, steps, sigma, seed + index).double()
+        delta = member - mean
+        mean += delta / (index + 1)
+        m2 += delta * (member - mean)
+    std = (m2 / ensemble).clamp_min(0).sqrt()
+    return mean.to(observed.dtype), std.to(observed.dtype)
