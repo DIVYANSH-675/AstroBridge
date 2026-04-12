@@ -96,3 +96,10 @@ The installed `astrobridge-artifacts` command offers the same interface. Use fre
 Metric summaries accept JSON arrays, single objects, reports containing `rows` or `episodes`, and streamed JSONL. They summarize numeric fields with population standard deviation and ignore boolean/nonnumeric fields. CSV export accepts flat scalar records; nested data must be transformed first. Comparisons report signed changes, without assuming whether larger values are better. Relative change is null when the baseline is zero.
 
 Bootstrap intervals assume independent observations. Correlated training steps or snapshots from the same run are not independent experimental repetitions; aggregate by run before interpreting an interval. These intervals do not calibrate model uncertainty.
+
+
+## Sampling and optimization controls
+
+Training accepts `--learning-rate`, `--batch-size`, and `--sigma`. The bridge noise scale is saved in checkpoint configuration and restored during evaluation unless `--sigma` is explicitly supplied. A zero scale produces deterministic bridge trajectories and cannot estimate uncertainty from sampling variation.
+
+Ensemble means and population standard deviations are accumulated online, so memory does not grow with the number of ensemble members. Evaluation retains the original nominal-90% coverage field and adds an `interval` object controlled by `--interval-level`. It reports empirical coverage, average interval width in physical units, and the fraction of pixels with zero ensemble spread. These are diagnostics of uncertainty failure as well as reconstruction behavior; increasing the nominal level does not establish calibration.
