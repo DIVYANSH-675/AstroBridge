@@ -99,3 +99,13 @@ def test_online_ensemble_matches_stacked_trajectories():
     torch.testing.assert_close(mean, stacked.mean(0))
     torch.testing.assert_close(std, stacked.std(0, unbiased=False))
     assert std.max() > 0
+
+
+def test_interval_diagnostics_expose_zero_spread_and_undercoverage():
+    from astrobridge.bridge import interval_report
+
+    report = interval_report(torch.tensor([0.0, 0.0]), torch.zeros(2), torch.tensor([0.0, 1.0]))
+    assert report["coverage"] == 0.5 and report["zero_spread_fraction"] == 1
+    assert report["mean_width"] == 0
+    with pytest.raises(ValueError):
+        interval_report(torch.zeros(1), torch.tensor([-1.0]), torch.zeros(1))

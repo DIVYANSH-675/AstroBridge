@@ -148,3 +148,26 @@ def ensemble_moments(model, observed, ensemble=4, steps=8, sigma=0.2, seed=0):
         m2 += delta * (member - mean)
     std = (m2 / ensemble).clamp_min(0).sqrt()
     return mean.to(observed.dtype), std.to(observed.dtype)
+
+
+def interval_report(prediction, std, target, confidence=0.9):
+    """Measure nominal Gaussian-interval coverage, without claiming calibration."""
+    from statistics import NormalDist
+
+    if prediction.shape != std.shape or prediction.shape != target.shape or not prediction.numel():
+        raise ValueError(
+            "Predictions, standard deviations, and targets must share a nonempty shape"
+        )
+    if (
+        not 0 < confidence < 1
+        or any(not torch.isfinite(v).all() for v in (prediction, std, target))
+        or (std < 0).any()
+    ):
+        raise ValueError("Finite inputs, nonnegative spread, and confidence in (0,1) are required")
+    radius = NormalDist().inv_cdf((1 + confidence) / 2) * std
+    return dict(
+        confidence=confidence,
+        coverage=float(((prediction - target).abs() <= radius).float().mean()),
+        mean_width=float((2 * radius).mean()),
+        zero_spread_fraction=float((std == 0).float().mean()),
+    )

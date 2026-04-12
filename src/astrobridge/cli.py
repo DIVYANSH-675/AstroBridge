@@ -5,7 +5,15 @@ import numpy as np
 import torch
 
 from . import __version__
-from .bridge import InverseNet, ensemble_moments, forward_bridge, load_pairs, sample, synthetic
+from .bridge import (
+    InverseNet,
+    ensemble_moments,
+    forward_bridge,
+    interval_report,
+    load_pairs,
+    sample,
+    synthetic,
+)
 from .io import seed_all, start_run, write_json, write_npz
 
 
@@ -23,8 +31,11 @@ def main():
     p.add_argument("--seed", type=int, default=7)
     p.add_argument("--sigma", type=float, default=None)
     p.add_argument("--steps", type=int, default=8)
+    p.add_argument("--interval-level", type=float, default=0.9)
     p.add_argument("--ensemble", type=int, default=4)
     a = p.parse_args()
+    if not 0 < a.interval_level < 1:
+        p.error("interval-level must be in (0,1)")
     if a.batch_size < 1:
         p.error("batch-size must be positive")
     if not np.isfinite(a.learning_rate) or a.learning_rate <= 0:
@@ -64,6 +75,9 @@ def main():
             mean_ensemble_std=float(std.mean()) * scale,
             nominal_90_coverage=float(((prediction - clean).abs() <= 1.645 * std).float().mean()),
             ensemble_size=a.ensemble,
+            interval=interval_report(
+                prediction * scale + offset, std * scale, clean * scale + offset, a.interval_level
+            ),
             sigma=sigma,
             note="Ensemble spread is not a calibrated posterior guarantee.",
         )
