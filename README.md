@@ -103,3 +103,8 @@ Bootstrap intervals assume independent observations. Correlated training steps o
 Training accepts `--learning-rate`, `--batch-size`, and `--sigma`. The bridge noise scale is saved in checkpoint configuration and restored during evaluation unless `--sigma` is explicitly supplied. A zero scale produces deterministic bridge trajectories and cannot estimate uncertainty from sampling variation.
 
 Ensemble means and population standard deviations are accumulated online, so memory does not grow with the number of ensemble members. Evaluation retains the original nominal-90% coverage field and adds an `interval` object controlled by `--interval-level`. It reports empirical coverage, average interval width in physical units, and the fraction of pixels with zero ensemble spread. These are diagnostics of uncertainty failure as well as reconstruction behavior; increasing the nominal level does not establish calibration.
+
+
+## Experiment analysis
+
+`astrobridge-analysis` (or `python -m astrobridge.analysis_cli`) provides distribution reports, matched-run comparisons, grouped summaries, and training-curve diagnostics. Reports include input-file SHA-256 fingerprints. See [ANALYSIS.md](ANALYSIS.md) for runnable examples, the Python API, statistical assumptions, and interpretation limits. These tools analyze saved observations; they do not constitute new model benchmark results.
